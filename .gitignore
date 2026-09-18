@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+backend/platform.db
+backend/app/ml/artifacts/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+
+# Data (downloaded, not committed — see backend/scripts/download_datasets.py)
+data/raw/*.csv
+
+# Env
+.env
+backend/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings (machine-specific permission grants)
+.claude/settings.local.json
+
+# Personal/reference files, not project deliverables
+/113a48a4-134f-4bd4-91c0-6e8336378d53.pdf
+/Capstone Report structure MBA (1) (1).pdf
