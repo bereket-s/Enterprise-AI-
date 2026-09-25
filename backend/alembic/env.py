@@ -2,7 +2,7 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import engine_from_config
+from sqlalchemy import create_engine
 from sqlalchemy import pool
 
 from alembic import context
@@ -19,8 +19,13 @@ config = context.config
 
 # Always use the app's own DATABASE_URL setting rather than a value hardcoded in
 # alembic.ini, so `alembic upgrade head` targets whatever this environment's
-# backend/.env (or the default SQLite file) actually points at.
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+# backend/.env (or the default SQLite file) actually points at. This is read
+# directly (not via config.set_main_option/get_main_option) because Alembic's
+# Config is backed by configparser, which treats a bare "%" in the *value* as
+# the start of its own interpolation syntax — a percent-encoded special
+# character in a database password (e.g. "%40" for "@") then raises
+# "invalid interpolation syntax" before a single migration runs.
+DATABASE_URL = get_settings().database_url
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -47,9 +52,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -66,11 +70,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(DATABASE_URL, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(
