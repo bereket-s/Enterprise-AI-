@@ -28,3 +28,7 @@ Thumbs.db
 # Personal/reference files, not project deliverables
 /113a48a4-134f-4bd4-91c0-6e8336378d53.pdf
 /Capstone Report structure MBA (1) (1).pdf
+
+# Academic deliverables (report + presentation) — kept locally, not pushed
+report/*.docx
+report/*.pptx
