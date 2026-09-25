@@ -80,6 +80,15 @@ compute), so both halves of the platform can live on the same host:
    Root Directory `frontend` (zero-config Next.js). Set
    `NEXT_PUBLIC_API_BASE_URL` to the backend project's deployed URL from step 2.
 
+If a project ends up linked via the Vercel CLI (`vercel link` run from inside
+`backend/` or `frontend/`) rather than the dashboard's Import flow, double-check
+**Root Directory** is still set under the project's Settings → General. CLI
+deploys upload just the current directory and work either way, but a
+GitHub-triggered build always clones the whole repo first — with Root
+Directory unset, that build looks for the app at the repo root and fails
+zero-config detection (`No FastAPI entrypoint found`, or `Couldn't find any
+pages or app directory`) even though CLI deploys looked fine.
+
 ## Database migrations (Alembic)
 
 ```bash
