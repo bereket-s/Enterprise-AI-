@@ -5,7 +5,16 @@ All results in this chapter are produced by a single, reproducible pipeline run
 public datasets into one demo organization, trains every module's model, and persists
 every metric reported here to `report/chapter4_results.json`. The run completed in
 227.5 seconds end-to-end on a standard laptop, with no manual intervention between
-ingestion and final metric.
+ingestion and final metric. Screenshots of the live platform, captured against this
+same demo organisation, are included throughout this chapter as Figures 4.1–4.9 so
+that every table below can be seen producing the number it reports, not only read as
+a static figure.
+
+**Figure 4.1 — Platform dashboard for the demo organisation.** All five modules
+enabled, each showing production or prototype readiness, with the AI Copilot
+available directly from the overview screen.
+
+![Platform overview dashboard](../figures/01_overview.png)
 
 ## 4.1 Business Intelligence & Forecasting
 
@@ -30,7 +39,8 @@ ingestion and final metric.
 **Interpretation.** The top-revenue products (DOTCOM POSTAGE, REGENCY CAKESTAND 3
 TIER, PAPER CRAFT LITTLE BIRDIE) match this dataset's well-documented composition — a
 UK gift wholesaler with a large postage/handling line item and a small number of very
-high-volume SKUs — which is a useful sanity check that ingestion and aggregation are
+high-volume SKUs (Stock-Keeping Units) — which is a useful sanity check that
+ingestion and aggregation are
 correct. A MAPE of 22.5% on daily *total company* revenue is a reasonable, though not
 exceptional, result for retail time series, which are naturally noisy day-to-day; it
 is directly comparable to the baseline the model is scored against — a naive
@@ -49,6 +59,12 @@ year-over-year) would separate the two effects. This finding illustrates exactly
 kind of nuance the literature review's dynamic-capabilities framing (Torres et al.,
 2018) warns about — a number on a dashboard is not automatically a correct decision
 input without the domain interpretation layered on top of it.
+
+**Figure 4.2 — BI & Forecasting module**, showing Table 4.1's revenue KPIs, the
+top-products list, and Table 4.2's forecast rendered as an actual/predicted revenue
+chart with the model's MAE/RMSE/MAPE displayed alongside it.
+
+![BI and Forecasting dashboard with KPIs and revenue forecast chart](../figures/02_bi.png)
 
 ## 4.2 Inventory & Procurement Optimization
 
@@ -69,6 +85,13 @@ own recent demand (§3.4/§5.3 limitation) — so these figures demonstrate that
 *reorder-point calculation itself* is functioning correctly (it responds sensibly to
 each product's demand volatility and lead time), rather than being a validated claim
 about this specific retailer's real inventory position.
+
+**Figure 4.3 — Inventory & Procurement module**, showing Table 4.3's reorder
+recommendations as they appear to an end user: current stock, expected demand over
+the lead time, recommended order quantity, and a graded stockout-risk label per
+product.
+
+![Inventory reorder recommendations table with graded risk labels](../figures/03_inventory.png)
 
 ## 4.3 Fraud & Anomaly Detection
 
@@ -109,6 +132,12 @@ XGBoost and Random Forest are **statistically indistinguishable** here (p = 0.06
 both beat Logistic Regression decisively, but the choice between the two ensembles
 is not evidence-backed at n=5 folds.
 
+**Figure 4.4 — Fraud & Anomaly Detection module**, showing Table 4.4/4.4b's single-split
+metrics, 5-fold cross-validation, and algorithm comparison exactly as rendered in the
+live evaluation card, with the highest-risk transactions table beneath it.
+
+![Fraud model evaluation card with cross-validation and algorithm comparison](../figures/04_fraud.png)
+
 ## 4.4 Predictive Maintenance
 
 **Table 4.5 — Maintenance model evaluation (75/25 split, N = 4,000)**
@@ -145,6 +174,13 @@ Regression's precision (0.146) is strikingly poor relative to its still-high ROC
 precise decision region here, unlike the tree ensembles; XGBoost and Random Forest are
 again statistically tied (p = 0.0625), with XGBoost's F1 (0.662 vs. 0.544) the more
 practically relevant tie-breaker given the precision/recall trade-off above.
+
+**Figure 4.5 — Predictive Maintenance module**, showing Table 4.5/4.5b's evaluation
+card and the equipment-to-inspect-first list with feature-grounded contributing
+factors (e.g. "torque is X std above the normal operating range") for each flagged
+machine.
+
+![Predictive maintenance model evaluation and equipment risk list](../figures/05_maintenance.png)
 
 ## 4.5 Employee Performance & Workforce Intelligence
 
@@ -195,6 +231,13 @@ configurability) — each organisation defines its own weights and therefore its
 notion of a good score; the number is only meaningful as a within-organisation,
 within-department comparison.
 
+**Figure 4.6 — Workforce module**, showing the per-department KPI weight editors
+(§2.1's configurability claim, not just a screenshot of static output) alongside an
+expanded "Explain my score" breakdown for one employee, and the attrition-risk column
+for the rest — each figure traceable back to the KPI weights shown above it.
+
+![Workforce KPI weight editors and an expanded score explanation](../figures/06_workforce.png)
+
 ## 4.6 Cross-Module Discussion
 
 Four findings recur across modules and connect directly back to Chapter 2's
@@ -239,4 +282,52 @@ alone, to be grounded in real per-case values — "explain my score", KPI-weight
 editing, and module-disable/403-enforcement were each exercised live and behaved as
 designed.
 
-*(Word count: ~2050)*
+## 4.8 Data Integration, Model Lifecycle, and Observability
+
+Chapter 1's original scope statement listed direct database/API ingestion and an
+LLM-backed Copilot as excluded, future extension points. Both were subsequently
+implemented and are reported here as results, not intentions. The AI Copilot itself
+demonstrates cross-module integration directly: a single natural-language question is
+answered from real, already-computed data belonging to a different module than the
+one the question happened to be asked from (Figure 4.7).
+
+**Figure 4.7 — AI Copilot** answering "Which machines should we inspect first?" from
+the Overview screen with the same equipment risk data reported in §4.4/Figure 4.5 —
+the fact retrieved and phrased in the chat bubble is the platform's own database
+output, not a fabricated or templated example.
+
+![AI Copilot chat answering a cross-module question with real data](../figures/07_copilot.png)
+
+Beyond the CSV-upload path exercised in every module above (§4.1–§4.5), a company can
+now connect its own data through five further, independently testable paths: a
+read-only database connector (with SQL-injection guarding — only a bare table name or
+a single `SELECT` is ever accepted), REST API push authenticated by a per-organisation
+API key, scheduled background sync/retrain jobs, inbound webhooks authenticated via
+HMAC (Hash-based Message Authentication Code) signatures, and a catalog of pre-built
+connectors (Figure 4.8, Figure 4.9). No real OAuth credentials
+exist for the three named third-party systems in this environment, so each pre-built
+connector runs in a clearly-labelled **simulated** mode — it generates a batch of rows
+shaped exactly like that vendor's real export, then puts it through the same mapping
+and ingestion pipeline described in §3.4/§3.6; only where the rows originate from
+would change for a live OAuth connection.
+
+**Figure 4.8 — Integrations settings**, showing a generated (single-use) API key and
+the database-connector configuration form used to register a read-only connection.
+
+![API key management and database connector configuration](../figures/08_integrations_top.png)
+
+**Figure 4.9 — Pre-built connector catalog**, honestly labelled `simulated` rather
+than presented as a live third-party connection, with per-module "Connect to..."
+actions driven by the same canonical-field auto-mapping used by every other ingestion
+path.
+
+![Pre-built connector catalog for Salesforce, QuickBooks, SAP, and generic REST APIs](../figures/09_integrations_connectors.png)
+
+Each of the six ingestion paths, the model registry (versioned artefacts with
+one-click rollback and reference-statistic drift detection per module), and the
+audit-log/usage-metric observability layer are covered by automated tests alongside
+the ML pipeline and tenant-isolation suites already reported in this chapter — 44
+tests in total (up from 18 at the point Chapter 1's exclusions were originally
+written), run with `pytest -q` in `backend/tests/`. This is presented as evidence the
+platform's data-integration surface, not only its models, was built to the same
+tested standard as the analytical modules themselves.

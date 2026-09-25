@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, Cable, SlidersHorizontal } from "lucide-react";
 import { api, apiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Card } from "@/components/ui";
+import { Alert, Card, PageHeader, Toggle } from "@/components/ui";
+import { MODULE_ICONS } from "@/lib/moduleMeta";
 import { useState } from "react";
 
 export default function SettingsPage() {
@@ -26,55 +28,65 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings & Modules</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Turn modules on or off for your organization. Disabled modules disappear from the sidebar and
-          their API is blocked, even for admins, until re-enabled.
-        </p>
-      </div>
+      <PageHeader
+        icon={SlidersHorizontal}
+        title="Settings & Modules"
+        subtitle="Turn modules on or off for your organization. Disabled modules disappear from the sidebar and their API is blocked, even for admins, until re-enabled."
+      />
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <Card>
+      <Card noAnimate>
         <div className="divide-y divide-slate-100">
-          {modules.map((m) => (
-            <div key={m.key} className="py-3 flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">{m.name}</p>
-                <p className="text-xs text-slate-500">{m.description}</p>
-                <p className="text-xs text-slate-400 capitalize mt-0.5">{m.maturity} readiness</p>
-              </div>
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={m.enabled}
-                  disabled={busyKey === m.key}
-                  onChange={(e) => toggle(m.key, e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:bg-brand-600 transition-colors relative">
-                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+          {modules.map((m, i) => {
+            const Icon = MODULE_ICONS[m.key];
+            return (
+              <div
+                key={m.key}
+                style={{ animationDelay: `${i * 50}ms` }}
+                className="animate-fade-in-up py-3.5 flex items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {Icon && (
+                    <span
+                      className={`hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                        m.enabled ? "bg-brand-50 text-brand-600" : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      <Icon size={17} strokeWidth={2} />
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{m.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{m.description}</p>
+                    <p className="text-xs text-slate-400 capitalize mt-0.5">{m.maturity} readiness</p>
+                  </div>
                 </div>
-              </label>
-            </div>
-          ))}
+                <Toggle checked={m.enabled} disabled={busyKey === m.key} onChange={(v) => toggle(m.key, v)} />
+              </div>
+            );
+          })}
         </div>
       </Card>
 
-      <Card>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">Integrations</p>
-            <p className="text-xs text-slate-500">
-              Connect your own data: file upload, database connector, REST API push, scheduled sync,
-              webhooks, and pre-built connectors.
-            </p>
+      <Card noAnimate>
+        <Link href="/dashboard/settings/integrations" className="flex items-center justify-between gap-4 group">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+              <Cable size={19} strokeWidth={2} />
+            </span>
+            <div>
+              <p className="font-medium text-sm">Integrations</p>
+              <p className="text-xs text-slate-500">
+                Connect your own data: file upload, database connector, REST API push, scheduled sync,
+                webhooks, and pre-built connectors.
+              </p>
+            </div>
           </div>
-          <Link href="/dashboard/settings/integrations" className="text-sm text-brand-700 font-medium underline">
-            Manage integrations →
-          </Link>
-        </div>
+          <span className="flex items-center gap-1 text-sm text-brand-700 font-medium shrink-0 transition-transform group-hover:translate-x-0.5">
+            Manage <ArrowRight size={15} />
+          </span>
+        </Link>
       </Card>
     </div>
   );

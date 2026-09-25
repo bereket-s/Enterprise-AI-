@@ -9,18 +9,20 @@ system through which an organisation connects its own data, selects only the
 analytical modules it needs — Business Intelligence & Forecasting, Inventory &
 Procurement Optimization, Fraud & Anomaly Detection, Predictive Maintenance, and
 Employee Performance & Workforce Intelligence — and receives explainable
-machine-learning output alongside a natural-language AI Copilot, all governed by a
-single, tested multi-tenant architecture.
+machine-learning (ML) output alongside a natural-language AI Copilot, all governed by
+a single, tested multi-tenant architecture.
 
 Following a quantitative Design Science Research method, the platform was built
 end-to-end (FastAPI/SQLAlchemy backend, Next.js/React frontend, XGBoost-based ML
 pipelines) and evaluated against four public, real-world datasets covering retail
-transactions, simulated card fraud, industrial sensor telemetry, and HR analytics.
+transactions, simulated card fraud, industrial sensor telemetry, and Human Resources
+(HR) analytics.
 Every classifier was evaluated both on a held-out split and via 5-fold
 cross-validation, benchmarked against Logistic Regression and Random Forest baselines
 with a paired Wilcoxon significance test. Results were strong for tasks with causally
-direct features — fraud detection achieved a cross-validated ROC-AUC of 0.988 ± 0.001
-and predictive maintenance 0.964 ± 0.011, both statistically indistinguishable from a
+direct features — fraud detection achieved a cross-validated ROC-AUC (Receiver
+Operating Characteristic – Area Under the Curve) of 0.988 ± 0.001 and predictive
+maintenance 0.964 ± 0.011, both statistically indistinguishable from a
 Random Forest baseline but decisively ahead of Logistic Regression — while employee
 attrition prediction, whose available features are more indirect proxies for a
 psychologically driven outcome, achieved a more modest 0.708 ± 0.038 with no
@@ -33,7 +35,11 @@ heuristic usability walkthrough of the live platform additionally found and fixe
 genuine defects — a data-shape rendering crash and a missing mobile-responsive
 breakpoint — neither of which the automated test suite was positioned to catch, and
 produced a ready-to-administer participant survey instrument for future empirical
-evaluation of decision-support value.
+evaluation of decision-support value. Beyond the four modelled analytical domains,
+the platform was further extended with six independent data-ingestion paths, a
+versioned model registry with drift detection, and an optional Large Language Model
+(LLM)-backed phrasing layer for the AI Copilot, all exercised by an expanded suite of
+44 automated tests.
 
 The study concludes that a single modular architecture can deliver isolated,
 explainable, configurable analytics across multiple distinct business domains from one

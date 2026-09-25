@@ -5,3 +5,41 @@
 body {
   @apply bg-slate-50 text-slate-900;
 }
+
+::selection {
+  @apply bg-brand-200 text-brand-900;
+}
+
+* {
+  scrollbar-color: theme("colors.slate.300") transparent;
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
+
+@layer components {
+  .skeleton {
+    @apply relative overflow-hidden bg-slate-200/70 rounded-md;
+    background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    background-size: 400px 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  .bg-grid {
+    background-image: linear-gradient(to right, rgb(15 23 42 / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(15 23 42 / 0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}

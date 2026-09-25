@@ -42,6 +42,12 @@ regardless of which of three algorithms is used).
 
 ## 5.2 Recommendations
 
+Three recommendations from this project's own earlier drafts — a live database
+connector, an optional LLM-backed Copilot, and Alembic-managed migrations — were
+implemented during the project rather than left as intentions, and are reported as
+results in §4.8 rather than repeated here. What follows is the recommendation set that
+remains genuinely open:
+
 1. **Seasonally-adjust the BI trend metric.** Replace the simple first-half/second-half
    revenue comparison with a same-period year-over-year or seasonally-decomposed trend,
    to avoid conflating calendar seasonality with genuine growth (§4.1).
@@ -49,20 +55,26 @@ regardless of which of three algorithms is used).
    in particular `OverTime` and richer engagement signals, which Raza et al. (2022)
    show materially improve attrition-model performance beyond what this project's
    public-mirror dataset retained.
-3. **Add a live ERP/CRM/database connector** alongside the existing CSV-upload path,
-   for organisations that cannot export a file on a schedule — the ingestion service
-   functions are already decoupled from the transport layer (§4 of
-   `docs/architecture.md`), so this is additive rather than a redesign.
-4. **Continue broadening the AI Copilot's intent set and, optionally, connect an
-   LLM** (the `LLM_API_KEY` extension point already exists in configuration) to phrase
-   answers more naturally while still sourcing every fact from the same database
-   queries used today, preserving the no-hallucination guarantee — two intents and a
-   fuzzy-match fallback were added during this project, but the set remains closed.
-5. **Move from `create_all()` schema bootstrap to Alembic migrations** and from
-   shared-schema to schema-per-tenant isolation before onboarding any organisation
-   handling regulated data (§2.1's isolation-strength discussion), as documented in
-   `docs/architecture.md §10`.
-6. **Administer the prepared participant survey** (Appendix G) to a small (n=3–5)
+3. **Obtain real OAuth credentials for the three named pre-built connectors**
+   (Salesforce, QuickBooks, SAP), which currently run in a documented simulated mode
+   (§4.8) — swapping in a live connection changes only where each adapter's rows come
+   from, not the mapping, validation, or storage pipeline downstream of it.
+4. **Add the remaining database dialect drivers** (`pymysql`, `pyodbc`, `cx_oracle`)
+   for the connector's MySQL/SQL Server/Oracle options, which are exposed in the
+   configuration UI but — unlike the PostgreSQL and SQLite dialects, both tested
+   end-to-end in §4.8 — cannot yet be exercised without a real server of that type to
+   test against.
+5. **Continue broadening the AI Copilot's intent set** beyond its current eight
+   (two added, plus a fuzzy-match fallback, during this project) and evaluate the
+   now-implemented LLM-backed phrasing layer (§4.8) in a live deployment with an
+   operator-supplied key — the phrasing layer only ever rephrases facts the
+   deterministic handlers already retrieved, so broadening intent coverage remains a
+   separate piece of work from enabling it.
+6. **Move from shared-schema to schema-per-tenant isolation** before onboarding any
+   organisation handling regulated data (§2.1's isolation-strength discussion), as
+   documented in `docs/architecture.md §2`. Migrations are already Alembic-managed
+   (§4.8), so this remaining step is a data-partitioning change, not a tooling one.
+7. **Administer the prepared participant survey** (Appendix G) to a small (n=3–5)
    pilot group as the direct next step — the instrument, task scripts, and analysis
    plan are complete; only recruitment and scheduling remain.
 
@@ -88,12 +100,16 @@ regardless of which of three algorithms is used).
   asserting this gap without addressing it — but the "does explanation quality change
   adoption behaviour" question (central to §2.2's literature) remains evaluated by
   design and expert heuristic here, not yet by real participants completing the
-  scenarios in Appendix G. Recommendation 6 makes this the identified next step, not
+  scenarios in Appendix G. Recommendation 7 makes this the identified next step, not
   an open-ended intention.
-- **Template-based, not LLM-based, Copilot.** The deployed Copilot now answers eight
-  intents (up from six) via scored keyword classification with a fuzzy-match
-  fallback; questions outside that set still receive a fixed fallback message rather
-  than a flexible, open-ended answer (Recommendation 4).
+- **Closed intent set, and an LLM phrasing layer not yet evaluated live.** The
+  deployed Copilot answers eight intents via scored keyword classification with a
+  fuzzy-match fallback; questions outside that set still receive a fixed fallback
+  message rather than a flexible, open-ended answer. An optional LLM-backed phrasing
+  layer was added during this project (§4.8) — it can only rephrase facts the
+  deterministic handlers already retrieved, never invent new ones, so it does not
+  widen intent coverage — but has not been evaluated in a live deployment with a
+  real API key (Recommendation 5).
 - **Single-split evaluation, now substantially mitigated.** Chapter 4 originally
   reported one seeded train/test split per model; every classification task is now
   additionally reported as a 5-fold cross-validated mean ± std with a paired
@@ -103,5 +119,3 @@ regardless of which of three algorithms is used).
   seeds* for the overall pipeline (only seed = 42 was run end-to-end); this is a
   smaller, more easily closed gap than the single-split problem this project set out
   to fix.
-
-*(Word count: ~980)*

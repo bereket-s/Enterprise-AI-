@@ -1,3 +1,4 @@
+import { BrainCircuit } from "lucide-react";
 import { Card } from "./ui";
 
 interface MetricSummary {
@@ -46,12 +47,12 @@ export function ModelEvaluationCard({ modelName, metrics }: { modelName: string;
   const metricNames = comparison ? Object.keys(Object.values(comparison)[0] ?? {}) : [];
 
   return (
-    <Card title={`Model: ${modelName}`}>
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm mb-4">
+    <Card icon={BrainCircuit} title={`Model: ${modelName}`}>
+      <div className="flex flex-wrap gap-2 mb-4">
         {scalars.map(([k, v]) => (
-          <span key={k}>
-            <span className="text-slate-500">{k}: </span>
-            <span className="font-medium">{v}</span>
+          <span key={k} className="inline-flex items-baseline gap-1 rounded-lg bg-slate-50 px-2.5 py-1 text-sm">
+            <span className="text-slate-500 text-xs">{k}</span>
+            <span className="font-semibold text-slate-800">{v}</span>
           </span>
         ))}
       </div>

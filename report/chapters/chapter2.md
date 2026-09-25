@@ -27,9 +27,10 @@ that turn a model's output into a concrete next action).
 **Explainable AI (XAI).** As predictive models move from experimentation into
 operational decision-making, the literature converges on a consistent finding:
 explanation quality is not a cosmetic feature but a direct driver of user trust,
-adoption, and appropriate reliance (Sharma et al., 2024; Staley, 2025; Almtrf, 2025).
-Two broad XAI approaches exist: *post-hoc* explanation of an opaque model (e.g. SHAP
-values layered on top of a trained model) and *inherently interpretable* explanation,
+adoption, and appropriate reliance (Almtrf, 2025; Sharma et al., 2024; Staley, 2025).
+Two broad XAI approaches exist: *post-hoc* explanation of an opaque model (e.g. SHAP —
+SHapley Additive exPlanations — values layered on top of a trained model) and
+*inherently interpretable* explanation,
 where the reason a case is flagged is derived directly from domain-meaningful features
 rather than reverse-engineered from the model afterwards. This project adopts the
 second approach throughout — fraud, maintenance, and performance-score explanations
@@ -46,23 +47,24 @@ trained naively on such data tends to simply predict the majority class. The
 established mitigation used throughout this project — cost-sensitive learning via a
 `scale_pos_weight` term in gradient boosting — re-weights the minority class during
 training rather than resampling the dataset, preserving the original data
-distribution for evaluation (a practice consistent with Alfaiz & Fati, 2022, and
-Btoush et al., 2023).
+distribution for evaluation (a practice consistent with Alfaiz & Fati, 2022; Btoush
+et al., 2023).
 
 **Multi-tenancy.** In software architecture, *multi-tenancy* describes a single
 application instance serving multiple customer organisations ("tenants") while
-keeping each tenant's data logically isolated. Pinto, Luz, Oliveira, Souza, and Souza
-(2016) distinguish tenancy models by isolation strength: shared schema with row-level
+keeping each tenant's data logically isolated. Pinto et al. (2016) distinguish
+tenancy models by isolation strength: shared schema with row-level
 filtering (cheapest, weakest physical isolation), schema-per-tenant, and
 database-per-tenant (most expensive, strongest isolation). This project adopts the
-first model deliberately, as the appropriate trade-off for an MVP/capstone-scale
-system, and documents the migration path to stronger isolation as the platform scales
+first model deliberately, as the appropriate trade-off for a Minimum Viable Product
+(MVP)/capstone-scale system, and documents the migration path to stronger isolation
+as the platform scales
 (see Chapter 5 and `docs/architecture.md`).
 
 ## 2.2 Current Research (Empirical Review)
 
-**Business intelligence and decision quality.** Torres, Sidorova, and Jones (2018)
-surveyed firms and found that BI/analytics capability improves firm performance
+**Business intelligence and decision quality.** Torres et al. (2018) surveyed firms
+and found that BI/analytics capability improves firm performance
 *indirectly*, mediated by improved decision-making processes — simply having the
 technology is not sufficient; the mediating variable is whether decisions actually
 change. Božič and Dimovski (2019) extended this with a dynamic-capabilities lens,
@@ -75,7 +77,8 @@ directly relevant to this project's emphasis on the Copilot and explanation laye
 the "last mile" that turns a forecast into a decision, not just a chart.
 
 **Fraud detection.** Alfaiz and Fati (2022) benchmarked multiple ML classifiers on the
-(PCA-anonymised) European credit-card fraud dataset, finding ensemble methods
+European credit-card fraud dataset — anonymised via Principal Component Analysis
+(PCA) — finding ensemble methods
 (including gradient boosting) consistently outperformed single classifiers,
 particularly once class-imbalance-aware resampling was applied. Btoush et al. (2023),
 in a systematic review of the credit-card-fraud literature, report that boosting
@@ -89,15 +92,14 @@ split and generates feature-grounded reason codes rather than a bare probability
 directly — introduced a synthetic-but-realistic sensor dataset specifically to enable
 reproducible predictive-maintenance research where real industrial failure data is
 proprietary and hard to obtain, and paired it with an explainability-first modelling
-approach. Sharma, Mittal, Soni, and Keprate (2024), reviewing XAI in predictive
+approach. Sharma et al. (2024), reviewing XAI in predictive
 maintenance broadly, report that interpretable failure explanations (not just a risk
 percentage) are consistently identified by maintenance engineers as the deciding
 factor in whether they trust and act on a model's alert — directly motivating this
 project's `contributing_factors` output (e.g. "torque is 1.8 std above the normal
 operating range") rather than a bare score.
 
-**Employee attrition / HR analytics.** Raza, Munir, Almutairi, Younas, and Fareed
-(2022) benchmarked five ML models on the IBM HR Analytics dataset — the same public
+**Employee attrition / HR analytics.** Raza et al. (2022) benchmarked five ML models on the IBM HR Analytics dataset — the same public
 dataset used in this project's Workforce module — and found ensemble/boosting methods
 outperformed logistic regression, but with materially weaker absolute performance
 (ROC-AUC in the 0.6–0.8 range) than the fraud or maintenance literature, which the
@@ -108,8 +110,8 @@ result (ROC-AUC 0.63; see Chapter 4) — a finding discussed critically rather t
 treated as a shortfall, since it replicates a documented, structural limitation of the
 underlying data rather than a modelling error.
 
-**Inventory / demand forecasting.** Goulart, de Carvalho, Henriques, and Carvalho
-(2026) implemented an ML-based demand-forecasting pipeline for a real distributor,
+**Inventory / demand forecasting.** Goulart et al. (2026) implemented an ML-based
+demand-forecasting pipeline for a real distributor,
 reporting that a properly validated ML forecast materially outperformed the
 distributor's prior manual/statistical process, and — notably for this project's
 design — that operational value came less from marginal forecast-accuracy gains and
@@ -143,6 +145,9 @@ architecture papers combine explicitly with an analytics-module context.
 Synthesising the conceptual review (§2.1) and the empirical findings (§2.2) into a
 single framework:
 
+**Figure 2.1 — Research framework**, linking data integration, module-specific ML,
+the explainability layer, cross-cutting configurability, and decision-support value.
+
 ```
         DATA INTEGRATION            MODULE-SPECIFIC ML          EXPLAINABILITY LAYER
         (upload, column-map)  ───▶  (forecast / classify /  ───▶ (feature-grounded
@@ -157,7 +162,7 @@ single framework:
                                           ▼
                               DECISION-SUPPORT VALUE
                     (faster, more confident, more trusted action —
-                     Torres et al. 2018; Božič & Dimovski 2019; Staley 2025)
+                     Božič & Dimovski 2019; Staley 2025; Torres et al. 2018)
 ```
 
 The framework's central claim, drawn directly from the literature above, is that
@@ -168,55 +173,3 @@ framework (data integration → ML → explainability, evaluated quantitatively 
 module); the *right-hand side* (organisational decision-quality impact) is discussed
 qualitatively in Chapter 5 as a direction for future, survey-based evaluation beyond
 this capstone's scope (see Chapter 1, §1.6).
-
-*(Word count: ~1480)*
-
-## References (Chapter 2 sources)
-
-- Almtrf, A. (2025). Integrating explainable AI (XAI) into decision support systems: A
-  framework for enhancing transparency and trust in managerial decision-making.
-  *International Journal of Managerial Studies and Research, 13*(9).
-  https://doi.org/10.20431/2349-0349.1309002
-- Alfaiz, N. S., & Fati, S. M. (2022). Enhanced credit card fraud detection model
-  using machine learning. *Electronics, 11*(4), 662.
-  https://doi.org/10.3390/electronics11040662
-- Božič, K., & Dimovski, V. (2019). Business intelligence and analytics use,
-  innovation ambidexterity, and firm performance: A dynamic capabilities perspective.
-  *Journal of Strategic Information Systems, 28*(4), 101578.
-  https://doi.org/10.1016/j.jsis.2019.101578
-- Btoush, E. A. L. M., Zhou, X., Gururajan, R., Chan, K. C., Genrich, R., & Sankaran,
-  P. (2023). A systematic review of literature on credit card cyber fraud detection
-  using machine and deep learning. *PeerJ Computer Science, 9*, e1278.
-  https://doi.org/10.7717/peerj-cs.1278
-- Goulart, D. D., de Carvalho, R. B., Henriques, M. A., & Carvalho, B. K. G. N.
-  (2026). Predictive models for inventory optimization: a machine learning
-  application for demand forecasting at a construction supplies distributor. *Future
-  Business Journal, 12*(1). https://doi.org/10.1186/s43093-026-00807-8
-- Mamakou, X. J. (2026). Linking business analytics to firm performance: A
-  mixed-method analysis of capabilities, decision quality, and firm size. *Journal of
-  Business Research, 212*, 116219. https://doi.org/10.1016/j.jbusres.2026.116219
-- Matzka, S. (2020). Explainable artificial intelligence for predictive maintenance
-  applications. *2020 Third International Conference on Artificial Intelligence for
-  Industries (AI4I)*, 69–74. https://doi.org/10.1109/ai4i49448.2020.00023
-- Pinto, V. H. S. C., Luz, H. J. F., Oliveira, R. R., Souza, P. S. L., & Souza, S. R.
-  S. (2016). A systematic mapping study on the multi-tenant architecture of SaaS
-  systems. *Proceedings of the 28th International Conference on Software Engineering
-  and Knowledge Engineering (SEKE 2016)*. https://doi.org/10.18293/seke2016-068
-- Raza, A., Munir, K., Almutairi, M., Younas, F., & Fareed, M. M. S. (2022).
-  Predicting employee attrition using machine learning approaches. *Applied Sciences,
-  12*(13), 6424. https://doi.org/10.3390/app12136424
-- Sharma, J., Mittal, M. L., Soni, G., & Keprate, A. (2024). Explainable artificial
-  intelligence (XAI) approaches in predictive maintenance: A review. *Recent Patents
-  on Engineering, 18*(5). https://doi.org/10.2174/1872212118666230417084231
-- Staley, I. (2025). The role of explainable AI in enhancing trust and
-  decision-making in financial services. *Journal of Applied Finance & Banking,
-  15*(5). https://doi.org/10.47260/jafb/1553
-- Torres, R., Sidorova, A., & Jones, M. C. (2018). Enabling firm performance through
-  business intelligence and analytics: A dynamic capabilities perspective.
-  *Information & Management, 55*(7), 822–839.
-  https://doi.org/10.1016/j.im.2018.03.010
-
-*(Dataset provenance citation, used in Chapter 3: Chen, D., Sain, S. L., & Guo, K.
-(2012). Data mining for the online retail industry: A case study of RFM model-based
-customer segmentation using data mining. Journal of Database Marketing & Customer
-Strategy Management, 19(3), 197–208. https://doi.org/10.1057/dbm.2012.17)*

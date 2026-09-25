@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { BarChart3, LineChart as LineChartIcon, PlayCircle, TrendingUp } from "lucide-react";
 import { api, apiErrorMessage } from "@/lib/api";
-import { Card, PrimaryButton, StatTile } from "@/components/ui";
-
-const CANONICAL_FIELDS = ["product_id", "product_name", "quantity", "unit_price", "transaction_date", "customer_ref", "country"];
+import { Alert, Button, Card, EmptyState, PageHeader, SkeletonStatRow, StatTile } from "@/components/ui";
+import { CsvUploadCard } from "@/components/CsvUploadCard";
 
 interface KPISummary {
   total_revenue: number;
@@ -25,11 +25,9 @@ interface ForecastOut {
 }
 
 export default function BIPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<{ columns: string[]; suggested_mapping: Record<string, string | null> } | null>(null);
-  const [mapping, setMapping] = useState<Record<string, string>>({});
   const [kpis, setKpis] = useState<KPISummary | null>(null);
   const [forecast, setForecast] = useState<ForecastOut | null>(null);
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,46 +50,8 @@ export default function BIPage() {
   };
 
   useEffect(() => {
-    loadKpis();
-    loadForecast();
+    Promise.all([loadKpis(), loadForecast()]).finally(() => setLoadingInitial(false));
   }, []);
-
-  const onFileSelected = async (f: File) => {
-    setFile(f);
-    setError(null);
-    const form = new FormData();
-    form.append("file", f);
-    try {
-      const resp = await api.post("/api/bi/ingest/preview", form);
-      setPreview(resp.data);
-      const initial: Record<string, string> = {};
-      CANONICAL_FIELDS.forEach((field) => {
-        if (resp.data.suggested_mapping[field]) initial[field] = resp.data.suggested_mapping[field];
-      });
-      setMapping(initial);
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    }
-  };
-
-  const commitIngest = async () => {
-    if (!file) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("mapping", JSON.stringify(mapping));
-      await api.post("/api/bi/ingest/commit", form);
-      setPreview(null);
-      setFile(null);
-      await loadKpis();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const runForecast = async () => {
     setBusy(true);
@@ -108,62 +68,41 @@ export default function BIPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Business Intelligence & Forecasting</h1>
-          <p className="text-slate-500 text-sm mt-1">Sales KPIs, trend analysis and demand forecasting.</p>
-        </div>
-        <label className="rounded-md border border-brand-600 text-brand-700 px-4 py-2 text-sm font-medium cursor-pointer hover:bg-brand-50">
-          Upload sales CSV
-          <input type="file" accept=".csv" hidden onChange={(e) => e.target.files && onFileSelected(e.target.files[0])} />
-        </label>
-      </div>
+      <PageHeader
+        icon={LineChartIcon}
+        title="Business Intelligence & Forecasting"
+        subtitle="Sales KPIs, trend analysis and demand forecasting."
+      />
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      {preview && (
-        <Card title="Confirm column mapping">
-          <p className="text-sm text-slate-500 mb-4">
-            We matched your file&apos;s columns automatically — adjust anything that looks wrong before importing.
-          </p>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            {CANONICAL_FIELDS.map((field) => (
-              <div key={field}>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{field}</label>
-                <select
-                  value={mapping[field] ?? ""}
-                  onChange={(e) => setMapping((m) => ({ ...m, [field]: e.target.value }))}
-                  className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                >
-                  <option value="">— not mapped —</option>
-                  {preview.columns.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-          <PrimaryButton onClick={commitIngest} disabled={busy}>
-            {busy ? "Importing..." : "Import data"}
-          </PrimaryButton>
-        </Card>
-      )}
+      <CsvUploadCard module="bi" onImported={loadKpis} />
 
-      {kpis && kpis.days_of_history > 0 ? (
+      {loadingInitial ? (
+        <SkeletonStatRow />
+      ) : kpis && kpis.days_of_history > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <StatTile label="Total revenue" value={`$${kpis.total_revenue.toLocaleString()}`} sublabel={`${kpis.days_of_history} days of history`} />
-            <StatTile label="Avg. daily revenue" value={`$${kpis.avg_daily_revenue.toLocaleString()}`} />
-            <StatTile label="Trend" value={`${kpis.trend_pct >= 0 ? "+" : ""}${kpis.trend_pct}%`} sublabel="first half vs. second half" />
+            <StatTile
+              icon={BarChart3}
+              label="Total revenue"
+              value={`$${kpis.total_revenue.toLocaleString()}`}
+              sublabel={`${kpis.days_of_history} days of history`}
+            />
+            <StatTile icon={TrendingUp} label="Avg. daily revenue" value={`$${kpis.avg_daily_revenue.toLocaleString()}`} />
+            <StatTile label="Trend" value={`${kpis.trend_pct >= 0 ? "+" : ""}${kpis.trend_pct}%`} trend={kpis.trend_pct} sublabel="first half vs. second half" />
           </div>
 
           <Card title="Top products by revenue">
             <ul className="divide-y divide-slate-100">
-              {kpis.top_products.map((p) => (
-                <li key={p.sku} className="py-2 flex justify-between text-sm">
-                  <span>{p.name}</span>
+              {kpis.top_products.map((p, i) => (
+                <li key={p.sku} className="py-2.5 flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500">
+                      {i + 1}
+                    </span>
+                    {p.name}
+                  </span>
                   <span className="font-medium">${p.revenue.toLocaleString()}</span>
                 </li>
               ))}
@@ -172,37 +111,64 @@ export default function BIPage() {
 
           <Card title="Revenue forecast">
             {!forecast ? (
-              <PrimaryButton onClick={runForecast} disabled={busy}>
-                {busy ? "Training model..." : "Run forecast"}
-              </PrimaryButton>
+              <EmptyState
+                icon={LineChartIcon}
+                title="No forecast yet"
+                description="Train a forecasting model on your ingested sales history to see predicted revenue."
+                action={
+                  <Button icon={PlayCircle} onClick={runForecast} loading={busy}>
+                    {busy ? "Training model..." : "Run forecast"}
+                  </Button>
+                }
+              />
             ) : (
               <>
-                <div className="flex gap-6 text-sm text-slate-500 mb-4">
-                  <span>Model: {forecast.model_name}</span>
-                  <span>MAE: {forecast.mae}</span>
-                  <span>RMSE: {forecast.rmse}</span>
-                  <span>MAPE: {forecast.mape}%</span>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {[
+                    ["Model", forecast.model_name],
+                    ["MAE", forecast.mae],
+                    ["RMSE", forecast.rmse],
+                    ["MAPE", `${forecast.mape}%`],
+                  ].map(([k, v]) => (
+                    <span key={k} className="inline-flex items-baseline gap-1 rounded-lg bg-slate-50 px-2.5 py-1 text-sm">
+                      <span className="text-slate-500 text-xs">{k}</span>
+                      <span className="font-semibold text-slate-800">{v}</span>
+                    </span>
+                  ))}
                 </div>
                 <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={forecast.forecast_points}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={30} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="actual" stroke="#64748b" dot={false} name="Actual" />
-                    <Line type="monotone" dataKey="predicted" stroke="#4f46e5" dot={false} name="Predicted" />
-                  </LineChart>
+                  <AreaChart data={forecast.forecast_points}>
+                    <defs>
+                      <linearGradient id="actualFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#64748b" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#64748b" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="predictedFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} minTickGap={30} axisLine={{ stroke: "#e2e8f0" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13, boxShadow: "0 4px 16px -4px rgb(15 23 42 / 0.15)" }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Area type="monotone" dataKey="actual" stroke="#64748b" fill="url(#actualFill)" strokeWidth={2} dot={false} name="Actual" />
+                    <Area type="monotone" dataKey="predicted" stroke="#4f46e5" fill="url(#predictedFill)" strokeWidth={2} dot={false} name="Predicted" />
+                  </AreaChart>
                 </ResponsiveContainer>
-                <PrimaryButton onClick={runForecast} disabled={busy} className="mt-3">
+                <Button variant="outline" icon={PlayCircle} onClick={runForecast} loading={busy} className="mt-4">
                   {busy ? "Re-training..." : "Re-run forecast"}
-                </PrimaryButton>
+                </Button>
               </>
             )}
           </Card>
         </>
       ) : (
         <Card>
-          <p className="text-sm text-slate-500">No sales data yet. Upload a CSV to get started.</p>
+          <EmptyState icon={BarChart3} title="No sales data yet" description="Upload a CSV above to get started." />
         </Card>
       )}
     </div>

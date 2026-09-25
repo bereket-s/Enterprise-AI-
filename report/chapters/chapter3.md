@@ -7,8 +7,10 @@ supplemented by a small qualitative usability component (§3.8). DSR is the
 established Information Systems methodology whose primary contribution is a working
 artefact — here, the platform itself — evaluated through rigorous testing rather than
 a survey of respondents' opinions. Every predictive module is assessed against
-standard, numeric metrics (MAE/RMSE/MAPE for forecasting; precision/recall/F1/ROC-AUC
-for classification), each computed both on a single held-out split and via 5-fold
+standard, numeric metrics — Mean Absolute Error (MAE), Root Mean Square Error (RMSE),
+and Mean Absolute Percentage Error (MAPE) for forecasting; precision, recall, F1
+score, and ROC-AUC (Receiver Operating Characteristic – Area Under the Curve) for
+classification — each computed both on a single held-out split and via 5-fold
 cross-validation (§3.6), exactly as a quantitative study reports results — the
 "instrument" being validated is a system, not a questionnaire. This is justified
 directly by the scope decision in §1.6: the research question (§1.4) concerns whether
@@ -39,9 +41,11 @@ synthetically-generated data (per the project brief's guidance to avoid "a datas
 containing 10,000 records I generated") so that results reflect real operational
 patterns rather than an idealised distribution built to flatter the model:
 
+**Table 3.1 — Datasets used, by module and source**
+
 | Module | Dataset | Source |
 |---|---|---|
-| BI/Forecasting, Inventory | Online Retail | UCI Machine Learning Repository (Chen, Sain, & Guo, 2012) |
+| BI/Forecasting, Inventory | Online Retail | UCI Machine Learning Repository (Chen et al., 2012) |
 | Fraud & Anomaly Detection | Simulated card transactions (Sparkov generator) | HuggingFace-mirrored public dataset |
 | Predictive Maintenance | AI4I 2020 Predictive Maintenance | UCI Machine Learning Repository (Matzka, 2020) |
 | Workforce Intelligence | IBM HR Analytics Employee Attrition | Public HR analytics dataset (HuggingFace mirror) |
@@ -81,7 +85,8 @@ documented rather than hidden).
 Each module follows the same pipeline: **stratified train/test split** (75/25,
 `random_state=42`) → **feature engineering** (module-specific: lag/calendar features
 for forecasting; amount/geo/time features for fraud; sensor-deviation features for
-maintenance; KPI-normalisation for workforce) → **model fitting**
+maintenance; Key Performance Indicator (KPI) normalisation for workforce) →
+**model fitting**
 (`XGBRegressor`/`XGBClassifier`, `scale_pos_weight` set from each split's own class
 balance) → **evaluation**, using `scikit-learn`'s standard metrics. For every
 classification task, this single-split result is **supplemented by 5-fold stratified
@@ -119,5 +124,3 @@ method and findings in Appendix F); and (2) a **prepared participant survey
 instrument** (Appendix G) — task scenarios plus Likert and open-ended questions — for
 a small (n=3–5) pilot with real users, ready to administer but not yet run within
 this capstone's timeline (justified in Appendix G, §G.8; revisited in Chapter 5).
-
-*(Word count: ~1000)*

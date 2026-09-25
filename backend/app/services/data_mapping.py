@@ -65,7 +65,14 @@ def _normalize(name: str) -> str:
 
 
 def suggest_mapping(source_columns: list[str], canonical_fields: list[str]) -> dict[str, str | None]:
-    """Return {canonical_field: best_matching_source_column_or_None}."""
+    """Return {canonical_field: best_matching_source_column_or_None}.
+
+    A source column, once claimed by one canonical field, is removed from
+    consideration for the rest — otherwise e.g. a "merchant" column can look
+    like a close fuzzy-match for the unrelated "merchant_lat"/"merchant_long"
+    fields (they share the long "merchant" prefix) and get double-mapped onto
+    a column holding the wrong kind of data entirely.
+    """
     normalized_source = {_normalize(c): c for c in source_columns}
     mapping: dict[str, str | None] = {}
 
@@ -81,5 +88,7 @@ def suggest_mapping(source_columns: list[str], canonical_fields: list[str]) -> d
             if close:
                 match = normalized_source[close[0]]
         mapping[field] = match
+        if match is not None:
+            del normalized_source[_normalize(match)]
 
     return mapping

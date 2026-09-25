@@ -1,13 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Activity,
+  Cable,
+  Database,
+  Key,
+  Plug,
+  RefreshCw,
+  Timer,
+  Trash2,
+  Webhook as WebhookIcon,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { api, apiErrorMessage } from "@/lib/api";
-import { Card, PrimaryButton } from "@/components/ui";
+import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
 
 const MODULES = ["bi_forecasting", "inventory", "fraud", "maintenance", "workforce"];
 // Neither has a trained model to retrain: BI is a recomputed forecast, Inventory is a
 // deterministic reorder formula — both only ever make sense as "sync data", never "retrain".
 const NOT_RETRAINABLE = new Set(["bi_forecasting", "inventory"]);
+
+const inputClass =
+  "rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500";
+const linkBtn = "text-xs font-medium text-slate-500 hover:text-slate-800 hover:underline transition-colors";
+const dangerLinkBtn = "text-xs font-medium text-red-600 hover:text-red-800 hover:underline transition-colors inline-flex items-center gap-1";
 
 // ---------------------------------------------------------------- types
 interface ApiKey {
@@ -71,14 +88,13 @@ export default function IntegrationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Integrations</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Six ways to connect your data — pick whichever fits how your systems already work.
-        </p>
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {notice && <p className="text-sm text-emerald-700">{notice}</p>}
+      <PageHeader
+        icon={Cable}
+        title="Integrations"
+        subtitle="Six ways to connect your data — pick whichever fits how your systems already work."
+      />
+      {error && <Alert tone="error">{error}</Alert>}
+      {notice && <Alert tone="success">{notice}</Alert>}
 
       <ApiKeysSection setError={setError} setNotice={setNotice} />
       <DbConnectionsSection setError={setError} setNotice={setNotice} />
@@ -91,6 +107,18 @@ export default function IntegrationsPage() {
 }
 
 type Setters = { setError: (s: string | null) => void; setNotice: (s: string | null) => void };
+
+function SectionTitle({ n, icon: Icon, children }: { n: number; icon: LucideIcon; children: string }) {
+  return (
+    <h3 className="flex items-center gap-2.5 text-sm font-semibold text-slate-700 mb-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+        <Icon size={16} strokeWidth={2} />
+      </span>
+      <Badge tone="brand">#{n}</Badge>
+      {children}
+    </h3>
+  );
+}
 
 // ---------------------------------------------------------------- #3 API Keys (auth for push/connectors)
 function ApiKeysSection({ setError, setNotice }: Setters) {
@@ -120,21 +148,22 @@ function ApiKeysSection({ setError, setNotice }: Setters) {
   };
 
   return (
-    <Card title="API Keys (used for #3 REST push and #6 connectors)">
+    <Card>
+      <SectionTitle n={3} icon={Key}>API Keys (used for REST push and connectors)</SectionTitle>
       <p className="text-sm text-slate-500 mb-3">
-        Machine-to-machine credentials — your own system sends this in an <code>X-API-Key</code> header
+        Machine-to-machine credentials — your own system sends this in an <code className="text-xs bg-slate-100 rounded px-1 py-0.5">X-API-Key</code> header
         instead of a user login. Push data with:
       </p>
-      <pre className="text-xs bg-slate-900 text-slate-100 rounded-md p-3 mb-3 overflow-x-auto">
+      <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-3 mb-3 overflow-x-auto">
         {`curl -X POST ${process.env.NEXT_PUBLIC_API_BASE_URL}/api/integrations/push/bi_forecasting \\
   -H "X-API-Key: <your key>" -H "Content-Type: application/json" \\
   -d '{"records": [{"product_id": "SKU-1", "quantity": 5, "unit_price": 9.99, "transaction_date": "2024-01-01"}]}'`}
       </pre>
 
       {newKey && (
-        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm">
+        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm animate-scale-in">
           <p className="font-medium mb-1">Copy this now — it won&apos;t be shown again:</p>
-          <code className="break-all">{newKey}</code>
+          <code className="break-all text-xs">{newKey}</code>
           <button onClick={() => setNewKey(null)} className="ml-3 text-xs underline">
             dismiss
           </button>
@@ -142,28 +171,37 @@ function ApiKeysSection({ setError, setNotice }: Setters) {
       )}
 
       <div className="flex gap-2 mb-4">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Key name (e.g. 'Nightly ERP export')" className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
-        <PrimaryButton onClick={create}>Generate key</PrimaryButton>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Key name (e.g. 'Nightly ERP export')"
+          className={`flex-1 ${inputClass}`}
+        />
+        <Button icon={Key} onClick={create}>Generate key</Button>
       </div>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {keys.map((k) => (
-            <tr key={k.id} className="border-b border-slate-100">
-              <td className="py-2">{k.name}</td>
-              <td className="py-2 text-slate-400 font-mono text-xs">{k.key_prefix}…</td>
-              <td className="py-2 text-xs text-slate-400">{k.revoked ? "revoked" : k.last_used_at ? `used ${k.last_used_at.slice(0, 10)}` : "never used"}</td>
-              <td className="py-2 text-right">
-                {!k.revoked && (
-                  <button onClick={() => revoke(k.id)} className="text-xs text-red-600 underline">
-                    Revoke
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {keys.length === 0 ? (
+        <EmptyState icon={Key} title="No API keys yet" />
+      ) : (
+        <table className="w-full text-sm">
+          <tbody>
+            {keys.map((k) => (
+              <tr key={k.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <td className="py-2.5">{k.name}</td>
+                <td className="py-2.5 text-slate-400 font-mono text-xs">{k.key_prefix}…</td>
+                <td className="py-2.5 text-xs text-slate-400">{k.revoked ? "revoked" : k.last_used_at ? `used ${k.last_used_at.slice(0, 10)}` : "never used"}</td>
+                <td className="py-2.5 text-right">
+                  {!k.revoked && (
+                    <button onClick={() => revoke(k.id)} className={dangerLinkBtn}>
+                      <Trash2 size={12} /> Revoke
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Card>
   );
 }
@@ -216,46 +254,55 @@ function DbConnectionsSection({ setError, setNotice }: Setters) {
   };
 
   return (
-    <Card title="Database Connector (#2 — read-only access to your own database)">
+    <Card>
+      <SectionTitle n={2} icon={Database}>Database Connector (read-only access to your own database)</SectionTitle>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-        <select value={form.module_key} onChange={(e) => setForm({ ...form, module_key: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+        <select value={form.module_key} onChange={(e) => setForm({ ...form, module_key: e.target.value })} className={inputClass}>
           {MODULES.map((m) => (
             <option key={m} value={m}>{m}</option>
           ))}
         </select>
-        <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
-        <select value={form.dialect} onChange={(e) => setForm({ ...form, dialect: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+        <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+        <select value={form.dialect} onChange={(e) => setForm({ ...form, dialect: e.target.value })} className={inputClass}>
           <option value="postgresql">PostgreSQL</option>
           <option value="mysql">MySQL</option>
           <option value="mssql">SQL Server</option>
           <option value="oracle">Oracle</option>
           <option value="sqlite">SQLite (file path as host)</option>
         </select>
-        <input placeholder="Host" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
-        <input type="number" placeholder="Port" value={form.port} onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) || 0 })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
-        <input placeholder="Database name" value={form.database_name} onChange={(e) => setForm({ ...form, database_name: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
-        <input placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
-        <input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
-        <input placeholder="Table name or SELECT query" value={form.source_query} onChange={(e) => setForm({ ...form, source_query: e.target.value })} className="col-span-2 md:col-span-4 rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
+        <input placeholder="Host" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className={inputClass} />
+        <input type="number" placeholder="Port" value={form.port} onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) || 0 })} className={inputClass} />
+        <input placeholder="Database name" value={form.database_name} onChange={(e) => setForm({ ...form, database_name: e.target.value })} className={inputClass} />
+        <input placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className={inputClass} />
+        <input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={inputClass} />
+        <input placeholder="Table name or SELECT query" value={form.source_query} onChange={(e) => setForm({ ...form, source_query: e.target.value })} className={`col-span-2 md:col-span-4 ${inputClass}`} />
       </div>
-      <PrimaryButton onClick={create} className="mb-4">Save connection</PrimaryButton>
+      <Button icon={Database} onClick={create} className="mb-4">Save connection</Button>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {items.map((c) => (
-            <tr key={c.id} className="border-b border-slate-100 align-top">
-              <td className="py-2">{c.name} <span className="text-xs text-slate-400">({c.module_key})</span></td>
-              <td className="py-2 text-xs text-slate-500">{c.dialect}://{c.host}:{c.port}/{c.database_name}</td>
-              <td className="py-2 text-xs text-slate-400 max-w-xs truncate">{c.last_status ?? "never synced"}</td>
-              <td className="py-2 text-right space-x-2 whitespace-nowrap">
-                <button onClick={() => test(c.id)} className="text-xs underline">Test</button>
-                <button onClick={() => sync(c.id)} className="text-xs underline">Sync now</button>
-                <button onClick={() => remove(c.id)} className="text-xs text-red-600 underline">Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {items.length === 0 ? (
+        <EmptyState icon={Database} title="No database connections yet" />
+      ) : (
+        <table className="w-full text-sm">
+          <tbody>
+            {items.map((c) => (
+              <tr key={c.id} className="border-b border-slate-100 last:border-0 align-top hover:bg-slate-50 transition-colors">
+                <td className="py-2.5">{c.name} <span className="text-xs text-slate-400">({c.module_key})</span></td>
+                <td className="py-2.5 text-xs text-slate-500">
+                  {c.dialect === "sqlite" ? `sqlite:///${c.host}` : `${c.dialect}://${c.host}:${c.port}/${c.database_name}`}
+                </td>
+                <td className="py-2.5 text-xs text-slate-400 max-w-xs truncate">{c.last_status ?? "never synced"}</td>
+                <td className="py-2.5 text-right space-x-3 whitespace-nowrap">
+                  <button onClick={() => test(c.id)} className={linkBtn}>Test</button>
+                  <button onClick={() => sync(c.id)} className={linkBtn}>Sync now</button>
+                  <button onClick={() => remove(c.id)} className={dangerLinkBtn}>
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Card>
   );
 }
@@ -295,43 +342,50 @@ function ScheduledJobsSection({ setError, setNotice }: Setters) {
   };
 
   return (
-    <Card title="Scheduled Sync & Retraining (#4 — runs automatically in the background every ~60s tick)">
+    <Card>
+      <SectionTitle n={4} icon={Timer}>Scheduled Sync &amp; Retraining (runs automatically in the background every ~60s tick)</SectionTitle>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-        <select value={form.module_key} onChange={(e) => setForm({ ...form, module_key: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+        <select value={form.module_key} onChange={(e) => setForm({ ...form, module_key: e.target.value })} className={inputClass}>
           {MODULES.filter((m) => !NOT_RETRAINABLE.has(m) || form.job_type === "data_sync").map((m) => (
             <option key={m} value={m}>{m}</option>
           ))}
         </select>
-        <select value={form.job_type} onChange={(e) => setForm({ ...form, job_type: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+        <select value={form.job_type} onChange={(e) => setForm({ ...form, job_type: e.target.value })} className={inputClass}>
           <option value="retrain">Retrain model</option>
           <option value="data_sync">Sync from database connection</option>
         </select>
         {form.job_type === "data_sync" && (
-          <select value={form.connection_id} onChange={(e) => setForm({ ...form, connection_id: e.target.value })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+          <select value={form.connection_id} onChange={(e) => setForm({ ...form, connection_id: e.target.value })} className={inputClass}>
             <option value="">— select connection —</option>
             {connections.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         )}
-        <input type="number" value={form.interval_minutes} onChange={(e) => setForm({ ...form, interval_minutes: parseInt(e.target.value) || 60 })} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Interval (minutes)" />
+        <input type="number" value={form.interval_minutes} onChange={(e) => setForm({ ...form, interval_minutes: parseInt(e.target.value) || 60 })} className={inputClass} placeholder="Interval (minutes)" />
       </div>
-      <PrimaryButton onClick={create} className="mb-4">Create schedule</PrimaryButton>
+      <Button icon={Timer} onClick={create} className="mb-4">Create schedule</Button>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {items.map((j) => (
-            <tr key={j.id} className="border-b border-slate-100">
-              <td className="py-2">{j.job_type} <span className="text-xs text-slate-400">({j.module_key}, every {j.interval_minutes}m)</span></td>
-              <td className="py-2 text-xs text-slate-400 max-w-xs truncate">{j.last_status ?? "not run yet"}</td>
-              <td className="py-2 text-right space-x-2 whitespace-nowrap">
-                <button onClick={() => toggle(j.id, !j.enabled)} className="text-xs underline">{j.enabled ? "Disable" : "Enable"}</button>
-                <button onClick={() => remove(j.id)} className="text-xs text-red-600 underline">Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {items.length === 0 ? (
+        <EmptyState icon={Timer} title="No scheduled jobs yet" />
+      ) : (
+        <table className="w-full text-sm">
+          <tbody>
+            {items.map((j) => (
+              <tr key={j.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <td className="py-2.5">{j.job_type} <span className="text-xs text-slate-400">({j.module_key}, every {j.interval_minutes}m)</span></td>
+                <td className="py-2.5 text-xs text-slate-400 max-w-xs truncate">{j.last_status ?? "not run yet"}</td>
+                <td className="py-2.5 text-right space-x-3 whitespace-nowrap">
+                  <button onClick={() => toggle(j.id, !j.enabled)} className={linkBtn}>{j.enabled ? "Disable" : "Enable"}</button>
+                  <button onClick={() => remove(j.id)} className={dangerLinkBtn}>
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Card>
   );
 }
@@ -361,39 +415,46 @@ function WebhooksSection({ setError, setNotice }: Setters) {
   };
 
   return (
-    <Card title="Webhooks (#5 — your system pushes one event at a time, in real time)">
+    <Card>
+      <SectionTitle n={5} icon={WebhookIcon}>Webhooks (your system pushes one event at a time, in real time)</SectionTitle>
       {created && (
-        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm">
+        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm animate-scale-in">
           <p className="font-medium mb-1">Copy this now — the secret won&apos;t be shown again:</p>
-          <p>URL: <code>{process.env.NEXT_PUBLIC_API_BASE_URL}{created.url_path}</code></p>
-          <p>Secret: <code className="break-all">{created.secret}</code></p>
+          <p>URL: <code className="text-xs">{process.env.NEXT_PUBLIC_API_BASE_URL}{created.url_path}</code></p>
+          <p>Secret: <code className="break-all text-xs">{created.secret}</code></p>
           <p className="text-xs text-slate-500 mt-1">
-            Sign the raw JSON body with HMAC-SHA256 using this secret, send it as header <code>X-Signature</code>.
+            Sign the raw JSON body with HMAC-SHA256 using this secret, send it as header <code className="bg-white/60 rounded px-1">X-Signature</code>.
           </p>
           <button onClick={() => setCreated(null)} className="mt-1 text-xs underline">dismiss</button>
         </div>
       )}
       <div className="flex gap-2 mb-4">
-        <select value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+        <select value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} className={inputClass}>
           {MODULES.map((m) => (
             <option key={m} value={m}>{m}</option>
           ))}
         </select>
-        <PrimaryButton onClick={create}>Create webhook</PrimaryButton>
+        <Button icon={WebhookIcon} onClick={create}>Create webhook</Button>
       </div>
-      <table className="w-full text-sm">
-        <tbody>
-          {items.map((w) => (
-            <tr key={w.id} className="border-b border-slate-100">
-              <td className="py-2">{w.module_key}</td>
-              <td className="py-2 text-xs text-slate-400">{w.receive_count} received{w.last_received_at ? `, last ${w.last_received_at.slice(0, 16)}` : ""}</td>
-              <td className="py-2 text-right">
-                <button onClick={() => remove(w.id)} className="text-xs text-red-600 underline">Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {items.length === 0 ? (
+        <EmptyState icon={WebhookIcon} title="No webhooks yet" />
+      ) : (
+        <table className="w-full text-sm">
+          <tbody>
+            {items.map((w) => (
+              <tr key={w.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <td className="py-2.5">{w.module_key}</td>
+                <td className="py-2.5 text-xs text-slate-400">{w.receive_count} received{w.last_received_at ? `, last ${w.last_received_at.slice(0, 16)}` : ""}</td>
+                <td className="py-2.5 text-right">
+                  <button onClick={() => remove(w.id)} className={dangerLinkBtn}>
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Card>
   );
 }
@@ -435,21 +496,31 @@ function ConnectorsSection({ setError, setNotice }: Setters) {
   };
 
   return (
-    <Card title="Pre-built Connectors (#6)">
-      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2 mb-3">
-        No real OAuth credentials exist for these third-party systems in this environment, so every connector
-        below runs in <strong>simulated</strong> mode: it pulls a batch of rows shaped exactly like that
-        system&apos;s real export, then goes through the same mapping and ingestion pipeline a live connection
-        would use. Swapping in a real OAuth connection later only changes where the rows come from.
-      </p>
+    <Card>
+      <SectionTitle n={6} icon={Plug}>Pre-built Connectors</SectionTitle>
+      <div className="mb-3">
+        <Alert tone="warning">
+          No real OAuth credentials exist for these third-party systems in this environment, so every connector
+          below runs in <strong>simulated</strong> mode: it pulls a batch of rows shaped exactly like that
+          system&apos;s real export, then goes through the same mapping and ingestion pipeline a live connection
+          would use. Swapping in a real OAuth connection later only changes where the rows come from.
+        </Alert>
+      </div>
       <div className="grid md:grid-cols-2 gap-3 mb-4">
         {catalog.map((c) => (
-          <div key={c.connector_type} className="border border-slate-200 rounded-lg p-3">
-            <p className="font-medium text-sm">{c.display_name} <span className="text-xs text-amber-600">({c.status})</span></p>
-            <p className="text-xs text-slate-500 mb-2">{c.description}</p>
-            <div className="flex flex-wrap gap-1">
+          <div key={c.connector_type} className="border border-slate-200 rounded-lg p-3.5 hover:border-slate-300 transition-colors">
+            <p className="font-medium text-sm flex items-center gap-1.5">
+              {c.display_name} <Badge tone="amber">{c.status}</Badge>
+            </p>
+            <p className="text-xs text-slate-500 mb-2.5 mt-0.5">{c.description}</p>
+            <div className="flex flex-wrap gap-1.5">
               {c.modules.map((m) => (
-                <button key={m} onClick={() => connect(c.connector_type, m)} disabled={c.connector_type === "generic_rest"} className="text-xs rounded-full border border-slate-300 px-2 py-0.5 hover:bg-slate-100 disabled:opacity-40">
+                <button
+                  key={m}
+                  onClick={() => connect(c.connector_type, m)}
+                  disabled={c.connector_type === "generic_rest"}
+                  className="text-xs rounded-full border border-slate-300 px-2.5 py-0.5 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition-colors disabled:opacity-40"
+                >
                   Connect to {m}
                 </button>
               ))}
@@ -458,20 +529,28 @@ function ConnectorsSection({ setError, setNotice }: Setters) {
         ))}
       </div>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {instances.map((i) => (
-            <tr key={i.id} className="border-b border-slate-100">
-              <td className="py-2">{i.name}</td>
-              <td className="py-2 text-xs text-amber-600">{i.status}</td>
-              <td className="py-2 text-right space-x-2 whitespace-nowrap">
-                <button onClick={() => sync(i.id)} className="text-xs underline">Sync now</button>
-                <button onClick={() => remove(i.id)} className="text-xs text-red-600 underline">Remove</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {instances.length === 0 ? (
+        <EmptyState icon={Plug} title="No connectors set up yet" />
+      ) : (
+        <table className="w-full text-sm">
+          <tbody>
+            {instances.map((i) => (
+              <tr key={i.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <td className="py-2.5">{i.name}</td>
+                <td className="py-2.5"><Badge tone="amber">{i.status}</Badge></td>
+                <td className="py-2.5 text-right space-x-3 whitespace-nowrap">
+                  <button onClick={() => sync(i.id)} className={`${linkBtn} inline-flex items-center gap-1`}>
+                    <RefreshCw size={12} /> Sync now
+                  </button>
+                  <button onClick={() => remove(i.id)} className={dangerLinkBtn}>
+                    <Trash2 size={12} /> Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Card>
   );
 }
@@ -487,25 +566,33 @@ function ObservabilitySection({ setError }: { setError: (s: string | null) => vo
   }, []);
 
   return (
-    <Card title="Observability: audit log & usage">
+    <Card>
+      <h3 className="flex items-center gap-2.5 text-sm font-semibold text-slate-700 mb-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+          <Activity size={16} strokeWidth={2} />
+        </span>
+        Observability: audit log &amp; usage
+      </h3>
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Recent admin actions</p>
-          <ul className="text-xs space-y-1 max-h-48 overflow-y-auto">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Recent admin actions</p>
+          <ul className="text-xs space-y-1.5 max-h-48 overflow-y-auto">
             {audit.map((a, i) => (
-              <li key={i} className="text-slate-600">
-                {a.created_at.slice(0, 16)} — <span className="font-medium">{a.action}</span>
+              <li key={i} className="text-slate-600 flex items-center gap-1.5">
+                <span className="text-slate-400 tabular-nums">{a.created_at.slice(0, 16)}</span>
+                <span className="font-medium text-slate-700">{a.action}</span>
               </li>
             ))}
             {audit.length === 0 && <li className="text-slate-400">No actions logged yet.</li>}
           </ul>
         </div>
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Per-module usage (requests/day)</p>
-          <ul className="text-xs space-y-1 max-h-48 overflow-y-auto">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Per-module usage (requests/day)</p>
+          <ul className="text-xs space-y-1.5 max-h-48 overflow-y-auto">
             {usage.map((u, i) => (
-              <li key={i} className="text-slate-600">
-                {u.day} — {u.module_key}: {u.request_count}
+              <li key={i} className="text-slate-600 flex items-center gap-1.5">
+                <span className="text-slate-400 tabular-nums">{u.day}</span>
+                {u.module_key}: <span className="font-medium text-slate-700">{u.request_count}</span>
               </li>
             ))}
             {usage.length === 0 && <li className="text-slate-400">No usage recorded yet.</li>}

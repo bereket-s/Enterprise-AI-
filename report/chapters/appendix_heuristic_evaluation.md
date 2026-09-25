@@ -33,11 +33,13 @@ graded label, not a bare binary.
 
 ## F.2 Findings by module
 
+**Table F.1 — Heuristic and explainability findings, by module**
+
 | Module | Heuristic rubric | Explainability rubric | Notes |
 |---|---|---|---|
 | BI/Forecasting | Pass | Partial | KPIs and forecast chart are clear and load correctly with real data (§4.1's revenue/forecast figures rendered exactly as reported). The "+56.4% trend" figure has no in-UI caveat about seasonality (see Chapter 4, §4.1 discussion) — a match-with-the-real-world gap: the number is accurate but its plain-language framing could mislead a manager unfamiliar with the underlying calculation. |
 | Inventory | Pass | Pass | Reorder table shows current stock, expected demand, recommended order and a graded risk label together on one row — satisfies actionability and uncertainty-communication directly. |
-| Fraud | Pass (after fix) | Pass | **A genuine defect was found and fixed during this walkthrough**: adding cross-validation/algorithm-comparison data to the evaluation payload (§4.6 methodology addition) crashed the page with "Objects are not valid as a React child," because the existing UI assumed every metric was a flat number. Fixed by building a dedicated `ModelEvaluationCard` component (`frontend/components/ModelEvaluationCard.tsx`) that renders the scalar metrics, the cross-validated mean±std, and the algorithm-comparison table properly. Re-verified against the live demo data with zero console errors afterwards. Per-transaction reason codes (e.g. "Amount is 4.2x this card's average transaction") satisfy groundedness directly. |
+| Fraud | Pass (after fix) | Pass | **A genuine defect was found and fixed during this walkthrough**: adding cross-validation/algorithm-comparison data to the evaluation payload (§4.6 methodology addition) crashed the page with "Objects are not valid as a React child," because the existing UI assumed every metric was a flat number. Fixed by building a dedicated `ModelEvaluationCard` component (`frontend/components/ModelEvaluationCard.tsx`) that renders the scalar metrics, the cross-validated mean±std, and the algorithm-comparison table properly. Re-verified against the live demo data with zero console errors afterwards — Figure 4.4 is that fixed card rendering this exact data. Per-transaction reason codes (e.g. "Amount is 4.2x this card's average transaction") satisfy groundedness directly. |
 | Predictive Maintenance | Pass | Pass | Contributing-factor text (e.g. "torque is 2.9 std above the normal operating range") is grounded in the same features the model trained on, satisfying groundedness without additional work — confirms Chapter 2's design choice to generate explanations from engineered features rather than a separate post-hoc method. |
 | Workforce | Pass | Pass | "Explain my score" was exercised directly: clicking it for a real employee returned a per-KPI breakdown (`100 × 0.2`, etc.) and a named "main improvement area," satisfying both actionability and groundedness. KPI-weight editing was exercised live (Sales/job_involvement changed 0.4 → 0.5 → reverted to 0.4) and confirmed via network trace to persist through a real `PUT` request — the configurability claim is not just presented in the UI but backed by a real write path. |
 | Settings / module toggle | Pass | Pass | Disabling Fraud removed it from the sidebar immediately (recognition-over-recall / visibility of system status) and a direct `fetch()` bypassing the UI confirmed the backend independently returns 403 — the enforcement is structural, not merely cosmetic. |
@@ -61,6 +63,13 @@ at 375px: main content now correctly fills the full viewport width, the menu
 opens with all seven links reachable, navigating closes it automatically, and no
 horizontal overflow was introduced at any tested width (375px, 768px, 1280px).
 
+**Figure F.1 — Dashboard mobile navigation after the fix**, captured at the same
+375px-wide viewport that originally triggered the defect: the slide-over panel
+opens over the dashboard with all seven navigation links reachable, where the
+original defect left five of them unreachable.
+
+![Mobile dashboard with the slide-over navigation menu open, showing all seven links](../figures/f1_mobile_responsive_fix.png)
+
 ## F.4 Summary
 
 Two genuine defects were found through this walkthrough and fixed in the same
@@ -72,8 +81,3 @@ tests API correctness, not rendered UI), which is itself a finding: **automated
 tests and heuristic walkthroughs catch different classes of defect, and a
 capstone relying on only one of the two would have shipped both bugs
 undetected.**
-
-### Reference
-
-Nielsen, J. (1994). *Usability Engineering*. Academic Press. (Ten usability
-heuristics, as commonly cited in HCI practice and research.)

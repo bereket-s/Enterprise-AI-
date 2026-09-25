@@ -14,8 +14,8 @@ Chapter 5, §5.2.
 To measure whether the platform's explanations (fraud reason codes, maintenance
 contributing factors, workforce score breakdowns) change a participant's
 **decision confidence** and **trust**, compared with being shown the equivalent
-raw score alone — directly testing the literature's central claim (Staley, 2025;
-Sharma et al., 2024; Almtrf, 2025) that explanation quality, not raw accuracy,
+raw score alone — directly testing the literature's central claim (Almtrf, 2025;
+Sharma et al., 2024; Staley, 2025) that explanation quality, not raw accuracy,
 drives adoption.
 
 ## G.2 Participants and ethics

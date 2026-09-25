@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ClipboardList, Package, PlayCircle } from "lucide-react";
 import { api, apiErrorMessage } from "@/lib/api";
-import { Card, PrimaryButton, RiskBadge } from "@/components/ui";
+import { Alert, Button, Card, EmptyState, PageHeader, RiskBadge, SkeletonTable } from "@/components/ui";
 import { CsvUploadCard } from "@/components/CsvUploadCard";
 
 interface ReorderRecommendation {
@@ -18,6 +19,7 @@ interface ReorderRecommendation {
 
 export default function InventoryPage() {
   const [recs, setRecs] = useState<ReorderRecommendation[]>([]);
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +33,7 @@ export default function InventoryPage() {
   };
 
   useEffect(() => {
-    load();
+    load().finally(() => setLoadingInitial(false));
   }, []);
 
   const runAnalysis = async () => {
@@ -49,52 +51,59 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Inventory & Procurement Optimization</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Demand-driven reorder points and purchase recommendations, built on your sales data.
-          </p>
-        </div>
-        <PrimaryButton onClick={runAnalysis} disabled={busy}>
-          {busy ? "Analyzing..." : "Run reorder analysis"}
-        </PrimaryButton>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="Inventory & Procurement Optimization"
+        subtitle="Demand-driven reorder points and purchase recommendations, built on your sales data."
+        actions={
+          <Button icon={PlayCircle} onClick={runAnalysis} loading={busy}>
+            {busy ? "Analyzing..." : "Run reorder analysis"}
+          </Button>
+        }
+      />
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
 
       <CsvUploadCard module="inventory" onImported={load} />
 
-      <Card>
-        {recs.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No analysis yet. Make sure sales data has been uploaded in the BI module first, then run the analysis.
-          </p>
+      <Card title="Reorder recommendations" icon={ClipboardList}>
+        {loadingInitial ? (
+          <SkeletonTable />
+        ) : recs.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="No analysis yet"
+            description="Make sure sales data has been uploaded in the BI module first, then run the analysis."
+          />
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="py-2">Product</th>
-                <th className="py-2">Current stock</th>
-                <th className="py-2">Expected demand (lead time)</th>
-                <th className="py-2">Recommended order</th>
-                <th className="py-2">Stockout risk</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recs.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100">
-                  <td className="py-2">{r.product_name}</td>
-                  <td className="py-2">{r.current_stock}</td>
-                  <td className="py-2">{r.expected_demand.toFixed(0)}</td>
-                  <td className="py-2 font-medium">{r.recommended_order_qty.toFixed(0)}</td>
-                  <td className="py-2">
-                    <RiskBadge label={r.risk_label} /> <span className="text-slate-400 ml-1">{(r.stockout_probability * 100).toFixed(0)}%</span>
-                  </td>
+          <div className="overflow-x-auto -mx-5">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-slate-400 uppercase tracking-wide border-b border-slate-200">
+                  <th className="py-2.5 px-5 font-medium">Product</th>
+                  <th className="py-2.5 px-5 font-medium">Current stock</th>
+                  <th className="py-2.5 px-5 font-medium">Expected demand (lead time)</th>
+                  <th className="py-2.5 px-5 font-medium">Recommended order</th>
+                  <th className="py-2.5 px-5 font-medium">Stockout risk</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recs.map((r) => (
+                  <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                    <td className="py-2.5 px-5 font-medium text-slate-800">{r.product_name}</td>
+                    <td className="py-2.5 px-5">{r.current_stock}</td>
+                    <td className="py-2.5 px-5">{r.expected_demand.toFixed(0)}</td>
+                    <td className="py-2.5 px-5 font-medium">{r.recommended_order_qty.toFixed(0)}</td>
+                    <td className="py-2.5 px-5">
+                      <div className="flex items-center gap-1.5">
+                        <RiskBadge label={r.risk_label} /> <span className="text-slate-400">{(r.stockout_probability * 100).toFixed(0)}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>

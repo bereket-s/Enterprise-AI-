@@ -6,7 +6,7 @@ Organisations of every size now generate continuous streams of operational data 
 sales transactions, inventory movements, payment records, sensor readings, and
 employee performance data — yet most small and mid-sized enterprises still rely on
 descriptive reporting rather than predictive or prescriptive analytics to act on it
-(Torres, Sidorova, & Jones, 2018). Large enterprises have invested heavily in
+(Torres et al., 2018). Large enterprises have invested heavily in
 business intelligence and AI-driven decision support, and empirical evidence links
 these capabilities to faster, higher-quality decisions and improved firm performance
 (Božič & Dimovski, 2019; Mamakou, 2026). Smaller organisations, by contrast, are
@@ -29,16 +29,15 @@ descriptive dashboards, to predictive models, to prescriptive, AI-generated
 recommendations for action. Each domain in this platform has its own mature
 literature and industrial practice. Business intelligence and analytics capability has
 been repeatedly linked to decision-making speed and organisational performance
-(Torres et al., 2018; Božič & Dimovski, 2019). Fraud detection has moved from
+(Božič & Dimovski, 2019; Torres et al., 2018). Fraud detection has moved from
 rule-based systems to gradient-boosted and ensemble classifiers capable of handling
 severe class imbalance (Alfaiz & Fati, 2022; Btoush et al., 2023). Predictive
 maintenance has become a flagship Industry 4.0 application, using sensor telemetry to
-forecast equipment failure ahead of breakdown (Matzka, 2020). HR analytics has
-absorbed machine learning to predict employee attrition from engagement and tenure
-signals (Raza, Munir, Almutairi, Younas, & Fareed, 2022). Multi-tenant SaaS
+forecast equipment failure ahead of breakdown (Matzka, 2020). Human Resources (HR)
+analytics has absorbed machine learning (ML) to predict employee attrition from
+engagement and tenure signals (Raza et al., 2022). Multi-tenant SaaS
 architecture — the pattern that lets one codebase serve many customers securely — is
-itself an established software-engineering research area (Pinto, Luz, Oliveira,
-Souza, & Souza, 2016).
+itself an established software-engineering research area (Pinto et al., 2016).
 
 What is comparatively under-explored is the *integration* of these capabilities: most
 academic and commercial systems treat each analytical domain as a standalone product.
@@ -56,8 +55,8 @@ maintenance, and workforce analytics today must typically adopt five different
 vendors, each with its own data model, login, and integration effort. Second,
 **opacity**: many predictive systems return a score (a fraud probability, a churn
 risk) without a business-readable explanation, which empirical work links directly to
-lower user trust and slower adoption (Staley, 2025; Almtrf, 2025; Sharma, Mittal,
-Soni, & Keprate, 2024). Third, **rigidity**: "performance" and "risk" mean different
+lower user trust and slower adoption (Almtrf, 2025; Sharma et al., 2024; Staley,
+2025). Third, **rigidity**: "performance" and "risk" mean different
 things in different departments and industries, yet most analytics products apply one
 fixed scoring formula to everyone.
 
@@ -103,19 +102,23 @@ module's data isolated, explainable, and independently configurable?
 **Included:** platform and multi-tenancy architecture; five analytical modules
 (Business Intelligence & Forecasting, Inventory & Procurement Optimization, Fraud &
 Anomaly Detection, Predictive Maintenance, Employee Performance & Workforce
-Intelligence) built to production depth on real public datasets; a rule-based AI
-Copilot; role-based access control; automated testing of tenant isolation and each
-module's ML pipeline.
+Intelligence) built to production depth on real public datasets; six independent
+data-ingestion paths (file upload, a read-only database connector, REST API push,
+scheduled sync, inbound webhooks, and a pre-built connector catalog); a versioned
+model registry with drift detection; a rule-based AI Copilot with an optional Large
+Language Model (LLM)-backed answer-phrasing layer; role-based access control;
+automated testing of
+tenant isolation and each module's ML pipeline.
 
-**Excluded:** live ERP/CRM integrations (the platform supports CSV upload with
-automatic column-mapping as its primary ingestion path; direct database/API
-connectors are documented as an architectural extension point but not implemented);
-enterprise-grade security certification (SOC 2, penetration testing); an LLM-backed
-Copilot (a deterministic template engine is implemented, with the LLM path
-architecturally supported but not evaluated, since no company-specific data would be
-sent to a third-party API without explicit tenant consent); and primary data
-collection from human respondents — the evaluation is a technical/experimental one
-against public secondary datasets rather than a user survey, a methodological choice
-justified in Chapter 3.
-
-*(Word count: ~990)*
+**Excluded:** live OAuth credentials for the three named pre-built connectors
+(Salesforce, QuickBooks, SAP), which therefore run in a clearly-labelled *simulated*
+mode — vendor-shaped sample data through the same real ingestion pipeline a live
+connection would use, documented as a swap-in extension point rather than a working
+third-party account; enterprise-grade security certification (SOC 2, penetration
+testing); production use of the Copilot's LLM-backed phrasing layer, which is
+implemented and tested against its no-key fallback but requires an operator-supplied
+API key not exercised here, since no company-specific data should be sent to a
+third-party API without explicit tenant consent; and primary data collection from
+human respondents — the evaluation is a technical/experimental one against public
+secondary datasets rather than a user survey, a methodological choice justified in
+Chapter 3.
