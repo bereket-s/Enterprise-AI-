@@ -30,6 +30,13 @@ class Settings(BaseSettings):
 
     data_raw_dir: Path = PROJECT_ROOT / "data" / "raw"
 
+    # The in-process BackgroundScheduler (app/core/scheduler.py) needs a
+    # persistent process to keep ticking, which serverless platforms don't
+    # provide. Set this to false on Vercel and drive the same tick logic from
+    # a Vercel Cron Job hitting GET /api/internal/cron-tick instead.
+    enable_inprocess_scheduler: bool = True
+    cron_secret: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:
